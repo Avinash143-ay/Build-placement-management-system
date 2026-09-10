@@ -22,7 +22,7 @@ important rules at both the API and database layers.
 - Provide secure login using signed JWTs.
 - Enforce different permissions for students, recruiters, and administrators.
 - Prevent duplicate applications and invalid student eligibility.
-- Provide a portable MySQL schema and a zero-setup SQLite demonstration.
+- Provide a portable MySQL schema and deployment configuration.
 - Compare B+ Tree lookup performance with a linear scan.
 - Document the architecture using ER, UML, sequence, state, and deployment views.
 
@@ -33,8 +33,6 @@ Browser / API client
         |
         v
 Flask application - routes, JWT, RBAC, validation
-        |
-        +--> SQLite demo database
         |
         +--> MySQL deployment database
         |

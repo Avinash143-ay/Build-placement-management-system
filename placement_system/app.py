@@ -1,75 +1,17 @@
 import os
-import sqlite3
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from pathlib import Path
 
 import jwt
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
 
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS roles (role_id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL);
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY AUTOINCREMENT, role_id INTEGER NOT NULL,
-    email TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL, full_name TEXT NOT NULL,
-    FOREIGN KEY (role_id) REFERENCES roles(role_id)
-);
-CREATE TABLE IF NOT EXISTS students (
-    student_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL,
-    roll_number TEXT UNIQUE NOT NULL, department TEXT NOT NULL, cgpa REAL NOT NULL,
-    graduation_year INTEGER NOT NULL, FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
-CREATE TABLE IF NOT EXISTS companies (
-    company_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL,
-    industry TEXT, website TEXT
-);
-CREATE TABLE IF NOT EXISTS recruiters (
-    recruiter_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL,
-    company_id INTEGER NOT NULL, FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (company_id) REFERENCES companies(company_id)
-);
-CREATE TABLE IF NOT EXISTS job_postings (
-    job_id INTEGER PRIMARY KEY AUTOINCREMENT, company_id INTEGER NOT NULL,
-    title TEXT NOT NULL, description TEXT NOT NULL, location TEXT,
-    package_lpa REAL, minimum_cgpa REAL NOT NULL DEFAULT 0,
-    application_deadline TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open',
-    FOREIGN KEY (company_id) REFERENCES companies(company_id)
-);
-CREATE TABLE IF NOT EXISTS applications (
-    application_id INTEGER PRIMARY KEY AUTOINCREMENT, job_id INTEGER NOT NULL,
-    student_id INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'applied',
-    applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(job_id, student_id), FOREIGN KEY (job_id) REFERENCES job_postings(job_id),
-    FOREIGN KEY (student_id) REFERENCES students(student_id)
-);
-CREATE TABLE IF NOT EXISTS interviews (
-    interview_id INTEGER PRIMARY KEY AUTOINCREMENT, application_id INTEGER NOT NULL,
-    scheduled_at TEXT NOT NULL, mode TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled',
-    FOREIGN KEY (application_id) REFERENCES applications(application_id)
-);
-CREATE TABLE IF NOT EXISTS recruiter_feedback (
-    feedback_id INTEGER PRIMARY KEY AUTOINCREMENT, application_id INTEGER UNIQUE NOT NULL,
-    rating INTEGER NOT NULL, comments TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (application_id) REFERENCES applications(application_id)
-);
-CREATE TABLE IF NOT EXISTS placements (
-    placement_id INTEGER PRIMARY KEY AUTOINCREMENT, application_id INTEGER UNIQUE NOT NULL,
-    placed_at TEXT NOT NULL, final_package_lpa REAL NOT NULL,
-    FOREIGN KEY (application_id) REFERENCES applications(application_id)
-);
-"""
-
-
 def create_app(test_config=None):
-    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app = Flask(__name__)
     app.config.update(
         SECRET_KEY=os.environ.get("SECRET_KEY", "local-development-secret"),
-        DATABASE_DRIVER=os.environ.get("PLACEMENT_DB_DRIVER", "sqlite"),
-        DATABASE=os.environ.get(
-            "PLACEMENT_DB", os.path.join(app.instance_path, "placement.db")
-        ),
         MYSQL_HOST=os.environ.get("MYSQL_HOST", "127.0.0.1"),
         MYSQL_PORT=int(os.environ.get("MYSQL_PORT", "3306")),
         MYSQL_DATABASE=os.environ.get("MYSQL_DATABASE", "placement_system"),
@@ -79,16 +21,6 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
-    if app.config["DATABASE_DRIVER"] == "sqlite":
-        database_directory = os.path.dirname(app.config["DATABASE"])
-        if database_directory:
-            os.makedirs(database_directory, exist_ok=True)
-
-    with app.app_context():
-        db = get_db(app)
-        initialize_database(app, db)
-        seed_demo_data(db)
-        db.commit()
 
     @app.teardown_appcontext
     def close_db(_error=None):
@@ -96,13 +28,11 @@ def create_app(test_config=None):
         if db:
             db.close()
 
-    @app.get("/")
-    def index():
-        return render_template("portal.html", portal={
-            "title": "Placement Management System",
-            "subtitle": "A role-based placement workflow backed by a normalized database.",
-            "highlights": ["JWT authentication", "Student applications", "Recruiter shortlisting", "Admin analytics"],
-        }, active_section="home")
+    with app.app_context():
+        db = get_db(app)
+        initialize_database(app, db)
+        seed_demo_data(db)
+        db.commit()
 
     @app.get("/api/health")
     def health():
@@ -153,7 +83,9 @@ def create_app(test_config=None):
             db = get_db(app)
             cursor = db.execute("INSERT INTO applications (job_id, student_id) VALUES (?, ?)", (job_id, student["student_id"]))
             db.commit()
-        except sqlite3.IntegrityError:
+        except Exception as error:
+            if error.__class__.__name__ not in {"IntegrityError", "DuplicateEntryError"}:
+                raise
             return jsonify({"error": "Application already exists"}), 409
         return jsonify({"application_id": cursor.lastrowid, "status": "applied"}), 201
 
@@ -231,43 +163,17 @@ def create_app(test_config=None):
 
 def get_db(app):
     if "db" not in g:
-        if app.config["DATABASE_DRIVER"] == "mysql":
-            import mysql.connector
+        import mysql.connector
 
-            connection = mysql.connector.connect(
-                host=app.config["MYSQL_HOST"],
-                port=app.config["MYSQL_PORT"],
-                database=app.config["MYSQL_DATABASE"],
-                user=app.config["MYSQL_USER"],
-                password=app.config["MYSQL_PASSWORD"],
-            )
-            g.db = MySQLDatabase(connection)
-        else:
-            connection = sqlite3.connect(app.config["DATABASE"])
-            connection.row_factory = sqlite3.Row
-            connection.execute("PRAGMA foreign_keys = ON")
-            g.db = SQLiteDatabase(connection)
+        connection = mysql.connector.connect(
+            host=app.config["MYSQL_HOST"],
+            port=app.config["MYSQL_PORT"],
+            database=app.config["MYSQL_DATABASE"],
+            user=app.config["MYSQL_USER"],
+            password=app.config["MYSQL_PASSWORD"],
+        )
+        g.db = MySQLDatabase(connection)
     return g.db
-
-
-class SQLiteDatabase:
-    def __init__(self, connection):
-        self.connection = connection
-
-    def execute(self, sql, params=()):
-        return self.connection.execute(sql, params)
-
-    def executemany(self, sql, params):
-        return self.connection.executemany(sql, params)
-
-    def executescript(self, sql):
-        return self.connection.executescript(sql)
-
-    def commit(self):
-        self.connection.commit()
-
-    def close(self):
-        self.connection.close()
 
 
 class MySQLDatabase:
@@ -292,9 +198,6 @@ class MySQLDatabase:
 
 
 def initialize_database(app, db):
-    if app.config["DATABASE_DRIVER"] == "sqlite":
-        db.executescript(SCHEMA)
-        return
     schema_path = Path(__file__).resolve().parents[1] / "database" / "schema.sql"
     statements = schema_path.read_text(encoding="utf-8").split(";")
     for statement in statements:

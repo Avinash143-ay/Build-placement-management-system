@@ -28,7 +28,7 @@ the canonical project structure used by the application and README commands.
 - Admin placement statistics
 - Mock CIMS student verification endpoint
 - Ten-table normalized MySQL schema with seed data
-- Local SQLite demo mode with no external database required
+- MySQL-only backend using the canonical relational schema
 - B+ tree exact lookup and range-query benchmark against a linear scan
 - Nine architecture diagrams exported as SVG
 
@@ -68,7 +68,7 @@ Demo accounts:
 
 ## Database Deployment
 
-The local demo uses SQLite. For MySQL deployment, execute
+The application uses MySQL. Execute
 [database/schema.sql](database/schema.sql) followed by [database/seed.sql](database/seed.sql).
 The schema defines roles, users, students, companies, recruiters, job postings,
 applications, interviews, feedback, and placements with constraints and indexes.
@@ -94,8 +94,8 @@ $env:MYSQL_PASSWORD = "your-password"
 python run.py
 ```
 
-The app uses the canonical `database/schema.sql` table names in MySQL mode. The
-old SQL dump remains in `archive/` and is not part of the active application.
+The app uses the canonical `database/schema.sql` table names. The old SQL dump
+remains in `archive/` and is not part of the active application.
 
 ## Indexing Evidence
 

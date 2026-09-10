@@ -75,11 +75,11 @@ where $k$ is the number of matching records.
 The linear list simply appends. The B+ Tree performs ordered insertion and may
 split nodes, so writes pay index-maintenance cost in exchange for faster reads.
 
-### Why keep SQLite and MySQL modes?
+### Why use MySQL?
 
-SQLite makes the project easy to demonstrate and test locally. MySQL is the
-deployment-oriented relational database represented by the canonical SQL files.
-Both use the same table and API contract.
+MySQL is the deployment database for this project. The API uses the canonical
+MySQL schema and parameterized queries, so the application and database model
+share one production-oriented contract.
 
 ### What would you improve next?
 
