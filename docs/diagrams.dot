@@ -1,0 +1,42 @@
+digraph PlacementSystemArchitecture {
+  graph [rankdir=LR, bgcolor="white", fontname="Arial", label="Placement Management System - Architecture Diagrams", labelloc=t, fontsize=24, nodesep=0.35, ranksep=0.55]
+  node [shape=box, style="rounded,filled", fillcolor="#eef4ff", color="#345995", fontname="Arial", fontsize=10]
+  edge [color="#506784", fontname="Arial", fontsize=9]
+
+  subgraph cluster_er { label="1. Entity Relationship Diagram"; color="#8fb3d9";
+    roles [label="roles"]; users [label="users"]; students [label="students"]; companies [label="companies"]; recruiters [label="recruiters"]; jobs [label="job_postings"]; applications [label="applications"]; interviews [label="interviews"]; feedback [label="recruiter_feedback"]; placements [label="placements"];
+    roles -> users -> students; users -> recruiters -> companies; companies -> jobs -> applications -> interviews; applications -> feedback; applications -> placements;
+  }
+  subgraph cluster_class { label="2. Domain Class Diagram"; color="#9cc7a5";
+    User [label="User\n+ authenticate()\n+ issue_token()"]; Student [label="Student\n+ browse_jobs()\n+ apply()"]; Recruiter [label="Recruiter\n+ post_job()\n+ review_application()"]; Job [label="JobPosting\n+ is_open()"];
+    User -> Student; User -> Recruiter; Recruiter -> Job; Student -> Job [label=" applies to "];
+  }
+  subgraph cluster_login { label="3. Login Sequence"; color="#e0b56c";
+    login_user [label="User"]; frontend [label="Frontend"]; api [label="Flask API"]; jwt [label="JWT service"]; db [label="Database"];
+    login_user -> frontend [label="email + password"]; frontend -> api [label="POST /api/auth/login"]; api -> db [label="load user + role"]; db -> api [label="credentials"]; api -> jwt [label="sign token"]; jwt -> frontend [label="token + role"]; frontend -> login_user [label="role dashboard"];
+  }
+  subgraph cluster_apply { label="4. Apply Sequence"; color="#d6a0bb";
+    student_user [label="Student"]; apply_ui [label="Portal"]; apply_api [label="Flask API"]; apply_db [label="Database"];
+    student_user -> apply_ui [label="select job"]; apply_ui -> apply_api [label="POST application"]; apply_api -> apply_db [label="validate CGPA + unique key"]; apply_db -> apply_api [label="created / conflict"]; apply_api -> apply_ui [label="status"]; apply_ui -> student_user [label="application receipt"];
+  }
+  subgraph cluster_usecase { label="5. Role Use Cases"; color="#a995cf";
+    admin [label="Admin"]; student_role [label="Student"]; recruiter_role [label="Recruiter"]; manage [label="Manage users\nview statistics"]; apply_case [label="Browse and apply\ntrack status"]; recruit_case [label="Post jobs\nshortlist candidates"];
+    admin -> manage; student_role -> apply_case; recruiter_role -> recruit_case;
+  }
+  subgraph cluster_state { label="6. Application State"; color="#d89090";
+    applied [label="Applied"]; shortlisted [label="Shortlisted"]; rejected [label="Rejected"]; hired [label="Hired"];
+    applied -> shortlisted; applied -> rejected; shortlisted -> rejected; shortlisted -> hired;
+  }
+  subgraph cluster_deployment { label="7. Deployment Diagram"; color="#77b7b0";
+    browser [label="Browser"]; flask [label="Flask container"]; mysql [label="MySQL database"]; index [label="B+ tree worker"];
+    browser -> flask -> mysql; flask -> index;
+  }
+  subgraph cluster_security { label="8. Security Boundary"; color="#c7a26a";
+    client [label="Client"]; auth [label="JWT + RBAC"]; protected [label="Protected endpoint"]; secret [label="Environment secret"];
+    client -> auth -> protected; secret -> auth [label="signing key"];
+  }
+  subgraph cluster_data { label="9. Data Flow"; color="#7fa7c9";
+    sql [label="schema.sql"]; seed [label="seed.sql"]; api_data [label="API records"]; analytics [label="Admin statistics"];
+    sql -> api_data; seed -> api_data; api_data -> analytics;
+  }
+}

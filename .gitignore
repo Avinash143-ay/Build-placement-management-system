@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+instance/
+placement_system/instance/
+.venv/
+
+# Local runtime output
+*.log
+Module-3/logs/
+
+# Local database snapshots and generated visualizations
+Module-4/saved_tables/
+Module-4/*.png
+Module-4/database/*.png

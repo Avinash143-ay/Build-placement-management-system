@@ -1,0 +1,23 @@
+{
+  "size": 10000,
+  "seed": 42,
+  "python": "3.11.9",
+  "platform": "Windows-10-10.0.26200-SP0",
+  "operations": {
+    "insert": {
+      "bplus_seconds": 0.02863499999875785,
+      "linear_seconds": 0.00214120000055118,
+      "speedup": 0.07477562425856688
+    },
+    "exact_search": {
+      "bplus_seconds": 0.0017927000008057803,
+      "linear_seconds": 0.10272310000073048,
+      "speedup": 57.30077534141722
+    },
+    "range_query": {
+      "bplus_seconds": 0.0006659999999101274,
+      "linear_seconds": 0.026577099999485654,
+      "speedup": 39.905555560168274
+    }
+  }
+}

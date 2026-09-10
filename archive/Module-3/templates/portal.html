@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ portal.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="brand">Placement Management System</div>
+      <nav class="nav">
+        <a href="{{ url_for('index') }}" class="{% if active_section == 'home' %}active{% endif %}">Home</a>
+        <a href="{{ url_for('portal_student') }}" class="{% if active_section == 'student' %}active{% endif %}">Student</a>
+        <a href="{{ url_for('portal_company') }}" class="{% if active_section == 'company' %}active{% endif %}">Company</a>
+        <a href="{{ url_for('portal_admin') }}" class="{% if active_section == 'admin' %}active{% endif %}">Admin</a>
+      </nav>
+      <div class="hero-grid">
+        <section>
+          <p class="eyebrow">Demo-ready portal</p>
+          <h1>{{ portal.title }}</h1>
+          <p class="subtitle">{{ portal.subtitle }}</p>
+          <div class="actions">
+            <a class="button primary" href="{{ url_for('api_home') }}">View API</a>
+            <a class="button secondary" href="{{ url_for('portal_student') }}">Open Student View</a>
+          </div>
+        </section>
+        <aside class="stats-card">
+          <h2>What this portal covers</h2>
+          <ul>
+            {% for item in portal.highlights %}
+            <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </aside>
+      </div>
+    </header>
+
+    <main class="content-grid">
+      <section class="card">
+        <h3>Student Flow</h3>
+        <p>Register, log in, browse job openings, apply, and track interview or placement status.</p>
+      </section>
+      <section class="card">
+        <h3>Company Flow</h3>
+        <p>Publish jobs, inspect applications, shortlist candidates, and complete hiring decisions.</p>
+      </section>
+      <section class="card">
+        <h3>Admin Flow</h3>
+        <p>Oversee users, jobs, interviews, placements, and analytics from one centralized dashboard.</p>
+      </section>
+      <section class="card wide">
+        <h3>Backend Integration</h3>
+        <p>The portal is designed to sit on top of the existing Flask APIs, JWT authentication, RBAC, MySQL schema, and B+ Tree-based custom DBMS module.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
